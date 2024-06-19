@@ -1,0 +1,181 @@
+# Estrutura de Pastas
+meu_projeto/
+├── .gitignore
+├── README.md
+├── main.py
+├── requirements.txt
+└── config.env
+
+# .gitignore
+config.env
+relatorio_pedidos.log
+
+# requirements.txt
+requests
+pandas
+scikit-learn
+python-dotenv
+
+# main.py
+import os
+import requests
+import pandas as pd
+import logging
+from datetime import datetime, timedelta
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import classification_report
+from dotenv import load_dotenv
+
+# Carregar variáveis de ambiente
+load_dotenv('config.env')
+
+# Configurações de logging
+logging.basicConfig(filename='relatorio_pedidos.log', level=logging.INFO, 
+                    format='%(asctime)s:%(levelname)s:%(message)s')
+
+logging.info('Iniciando o script para obter dados do Redash')
+
+# Configurações da API do Redash
+API_KEY = os.getenv('REDASH_API_KEY')
+BASE_URL = os.getenv('BASE_URL')
+QUERY_ID = os.getenv('QUERY_ID')
+
+# URL da API para executar a query
+url = f'{BASE_URL}/api/queries/{QUERY_ID}/results.json?latest=true'
+
+# Cabeçalhos da solicitação
+headers = {
+    'Authorization': f'Key {API_KEY}'
+}
+
+# Diretório de download
+diretorio_download = os.path.expanduser('~/Downloads')  # Caminho para a pasta Downloads
+
+# Nome do arquivo base (sem extensão)
+nome_arquivo_base = 'relatorio_pedidos'
+
+# Gerando um nome único baseado na data e hora atual
+agora = datetime.now()
+timestamp = agora.strftime('%Y%m%d_%H%M%S')
+nome_arquivo = f'{nome_arquivo_base}_{timestamp}.xlsx'
+
+# Caminho completo do arquivo
+caminho_arquivo = os.path.join(diretorio_download, nome_arquivo)
+
+def obter_dados_redash(url, headers):
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        if 'query_result' in data and 'data' in data['query_result']:
+            rows = data['query_result']['data']['rows']
+            return pd.DataFrame(rows)
+        else:
+            logging.warning('Os resultados da consulta não estão disponíveis no momento.')
+            return pd.DataFrame()
+    except requests.exceptions.RequestException as e:
+        logging.error('Erro na solicitação HTTP: %s', e)
+        return pd.DataFrame()
+    except Exception as e:
+        logging.error('Erro ao processar os dados: %s', e)
+        return pd.DataFrame()
+
+def processar_dados(df):
+    required_columns = {'id_comprador', 'email_comprador', 'valor', 'order_webcode', 'data_pagamento', 'status_cadastro'}
+    if required_columns.issubset(df.columns):
+        df['valor'] = pd.to_numeric(df['valor'], errors='coerce')
+        df['data_pagamento'] = pd.to_datetime(df['data_pagamento'], errors='coerce')
+        data_limite_30_dias = datetime.now() - timedelta(days=30)
+        df_30_dias = df[df['data_pagamento'] >= data_limite_30_dias].copy()
+        return df_30_dias
+    else:
+        logging.error(f'Colunas necessárias {required_columns} não encontradas nos resultados da query.')
+        return pd.DataFrame()
+
+def criar_modelo_e_prever(df_30_dias, df_3_dias):
+    df_30_dias['quantidade_de_pedidos'] = df_30_dias.groupby('id_comprador')['id_comprador'].transform('count')
+    df_30_dias['soma_de_pedidos'] = df_30_dias.groupby('id_comprador')['valor'].transform('sum')
+    df_30_dias['fraude'] = (df_30_dias['soma_de_pedidos'] > df_30_dias['soma_de_pedidos'].mean()).astype(int)
+    
+    X = df_30_dias[['quantidade_de_pedidos', 'soma_de_pedidos']]
+    y = df_30_dias['fraude']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    
+    model = DecisionTreeClassifier()
+    model.fit(X_train, y_train)
+    
+    y_pred = model.predict(X_test)
+    print(classification_report(y_test, y_pred))
+    
+    df_3_dias['quantidade_de_pedidos'] = df_3_dias.groupby('id_comprador')['id_comprador'].transform('count')
+    df_3_dias['soma_de_pedidos'] = df_3_dias.groupby('id_comprador')['valor'].transform('sum')
+    
+    X_new = df_3_dias[['quantidade_de_pedidos', 'soma_de_pedidos']]
+    df_3_dias['fraude_prevista'] = model.predict(X_new)
+    
+    return df_3_dias
+
+def main():
+    df = obter_dados_redash(url, headers)
+    if not df.empty:
+        df_30_dias = processar_dados(df)
+        if not df_30_dias.empty:
+            data_limite_3_dias = datetime.now() - timedelta(days=3)
+            df_3_dias = df[df['data_pagamento'] >= data_limite_3_dias].copy()
+            if not df_3_dias.empty:
+                df_3_dias = criar_modelo_e_prever(df_30_dias, df_3_dias)
+                fraudes_previstas = df_3_dias[df_3_dias['fraude_prevista'] == 1]
+                print('Fraudes previstas nos últimos 3 dias:')
+                print(fraudes_previstas)
+                df_3_dias.to_excel(caminho_arquivo, index=False)
+                print(f'Relatório salvo em: {caminho_arquivo}')
+                logging.info(f'Relatório salvo em: {caminho_arquivo}')
+            else:
+                print('Nenhum pagamento efetuado nos últimos 3 dias.')
+                logging.info('Nenhum pagamento efetuado nos últimos 3 dias.')
+        else:
+            print('Nenhum pagamento efetuado nos últimos 30 dias.')
+            logging.info('Nenhum pagamento efetuado nos últimos 30 dias.')
+    else:
+        print('Erro ao obter dados do Redash.')
+
+if __name__ == '__main__':
+    main()
+
+
+# README.md
+# Projeto de Prevenção a Fraudes
+
+Este projeto faz uso da API do Redash para obter dados de pedidos, processá-los e prever possíveis fraudes utilizando um modelo de árvore de decisão.
+
+## Configuração
+
+1. Clone este repositório.
+2. Crie um arquivo `config.env` na raiz do projeto com as seguintes variáveis:
+    ```
+    REDASH_API_KEY=SuaChaveDeAPI
+    BASE_URL=URLDaSuaInstânciaRedash
+    QUERY_ID=IdDaSuaQuery
+    ```
+3. Instale as dependências:
+    ```
+    pip install -r requirements.txt
+    ```
+4. Execute o script:
+    ```
+    python main.py
+    ```
+
+## Estrutura do Projeto
+
+- `main.py`: Script principal.
+- `requirements.txt`: Arquivo de dependências.
+- `config.env`: Arquivo de configuração das variáveis de ambiente (não adicionar ao Git).
+- `.gitignore`: Arquivo para excluir do versionamento arquivos sensíveis e gerados.
+
+## Funcionalidades
+
+- Obtém dados de pedidos dos últimos 30 dias.
+- Cria e treina um modelo de árvore de decisão para prever fraudes.
+- Salva um relatório em Excel com previsões de fraudes para os últimos 3 dias.
