@@ -24,3 +24,9 @@ Consolidar aprendizados e construir soluções que simulem cenários de **preven
 1. Clone o repositório:
    ```bash
    git clone https://github.com/seu-usuario/Meus-C-digos.git
+
+2. Execute os scripts Python:
+   ```bash
+   python nome_do_script.py
+
+
