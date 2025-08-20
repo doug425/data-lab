@@ -1,3 +1,0 @@
-Na coluna B inserir o seguinte código: ="'"&A1&"'"&","
-
-Quando quero juntar um texto com um dado da coluna A e ainda colocar mais um texto no final, preciso fazer o seguinte código: ="WHEN TRA = '"&A2&"'"&" THEN "
