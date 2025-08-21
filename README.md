@@ -23,7 +23,7 @@ Consolidar aprendizados e construir soluções que simulem cenários de **preven
 ## ⚙️ Como usar
 1. Clone o repositório:
    ```bash
-   git clone https://github.com/seu-usuario/Meus-C-digos.git
+   git clone https://github.com/doug425/data-lab.git
 
 2. Execute os scripts Python:
    ```bash
