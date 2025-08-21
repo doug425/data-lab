@@ -29,4 +29,13 @@ Consolidar aprendizados e construir soluções que simulem cenários de **preven
    ```bash
    python nome_do_script.py
 
+## 📊 Projetos em Python
+
+- [Fraude Velocity Lab](fraude-velocity-lab)  
+  Pipeline em Python para cálculo de métricas de *velocity* aplicadas à prevenção a fraudes (modo demo com dados sintéticos e modo MySQL com views auxiliares).  
+  Inclui:
+  - Geração de métricas como `orders_7d`, `avg_ticket_30d`, `interpurchase_hours`
+  - Score didático de velocity
+  - Exemplo pronto em `sample_output/velocity_features_demo.csv`
+
 
