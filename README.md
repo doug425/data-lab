@@ -1,4 +1,4 @@
-# 🚀 Projeto Nolan — Prevenção a Fraude  
+# 🧪 Data Lab — Fraud & Analytics  
 
 Repositório de estudos e experimentos em **SQL, Python e Machine Learning** aplicados à **prevenção de fraudes**.  
 Aqui documento minhas práticas, simulações e análises, sempre com foco em **casos reais de e-commerce**.
