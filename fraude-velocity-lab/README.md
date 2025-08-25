@@ -105,8 +105,7 @@ Ele resume em uma escala simples (0–3) sinais de possíveis tentativas de frau
 | **2**     | ≥ 3 pedidos em 24h (`flag_velocity_24h_alta`) | Comportamento de “rush” de pedidos → típico em teste de cartões, fraude organizada ou uso abusivo de limite. |
 | **3**     | Ambas as flags ligadas | 🚨 Perfil crítico → forte indício de fraude em andamento. Alta prioridade de investigação. |
 
-<img width="1024" height="1024" alt="image" src="https://github.com/user-attachments/assets/69060bc3-5a92-44ab-a66d-1ae1bb0b90b8" />
-
+---
 
 > 🔎 Observação: este score é **didático** e foi projetado para fins de estudo.  
 > Em cenários reais, ele pode ser expandido com mais janelas temporais, pesos calibrados e histórico de chargeback.
